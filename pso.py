@@ -15,6 +15,7 @@ import random
 import copy
 import json
 from datetime import datetime
+from pathlib import Path
 
 from traffic_simulation import evaluate   # fitness function from simulation.py
 
@@ -246,18 +247,33 @@ def _pct_improvement(start, end):
 
 def _save_history(history, best_pos, best_cost):
     """
-    Persist convergence data to JSON so you can plot without re-running PSO.
+    Persist convergence data to JSON inside the results/ directory.
+
+    A unique filename is generated from the current timestamp so that each
+    run creates a new file and no previous results are ever overwritten.
+
+    File format : results/pso_results_YYYYMMDD_HHMMSS.json
 
     Load it in a plotting script with:
         import json
-        data = json.load(open('pso_results.json'))
+        data = json.load(open('results/pso_results_YYYYMMDD_HHMMSS.json'))
         plt.plot(data['history'])
     """
+    # ── 1. Ensure the results/ directory exists (create if absent) ────
+    results_dir = Path("results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── 2. Build a unique filename from the current timestamp ─────────
+    ts       = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"pso_results_{ts}.json"
+    path     = results_dir / filename              # e.g. results/pso_results_20240618_143022.json
+
+    # ── 3. Compose the JSON payload (structure unchanged) ─────────────
     payload = {
-        "timestamp":       datetime.now().isoformat(),
-        "best_position":   best_pos,
-        "best_cost":       best_cost,
-        "history":         history,
+        "timestamp":     datetime.now().isoformat(),
+        "best_position": best_pos,
+        "best_cost":     best_cost,
+        "history":       history,
         "params": {
             "swarm_size":   SWARM_SIZE,
             "iterations":   ITERATIONS,
@@ -266,9 +282,12 @@ def _save_history(history, best_pos, best_cost):
             "sim_duration": SIM_DURATION,
         }
     }
-    path = "pso_results.json"
-    with open(path, "w") as f:
+
+    # ── 4. Write – 'x' mode raises FileExistsError if file already exists
+    #              (sub-second safety net on top of the timestamp uniqueness)
+    with open(path, "x") as f:
         json.dump(payload, f, indent=2)
+
     print(f"  Convergence data saved → {path}")
     print(f"  Plot it with:  python plot_convergence.py\n")
 

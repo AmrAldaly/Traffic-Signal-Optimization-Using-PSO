@@ -1,24 +1,54 @@
 """
-plot_convergence.py – Visualise PSO convergence from saved pso_results.json
-============================================================================
+plot_convergence.py – Visualise PSO convergence from results/pso_results_*.json
+================================================================================
 Run after pso.py has finished:
-    python plot_convergence.py
+    python plot_convergence.py                          # loads the latest run
+    python plot_convergence.py results/pso_results_X.json  # loads a specific run
 """
 
 import json
 import sys
+from pathlib import Path
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Install matplotlib first:  pip install matplotlib")
 
+
+# ── Locate the JSON file to load ─────────────────────────────────────────
+RESULTS_DIR = Path("results")
+
+if len(sys.argv) > 1:
+    # A specific file was supplied on the command line
+    json_path = Path(sys.argv[1])
+    if not json_path.exists():
+        sys.exit(f"File not found: {json_path}")
+else:
+    # Auto-select the most recent file in results/ by filename
+    # (filenames embed the timestamp as YYYYMMDD_HHMMSS, so lexicographic
+    #  order == chronological order — no stat() call needed)
+    if not RESULTS_DIR.exists():
+        sys.exit("results/ directory not found. Run pso.py first.")
+
+    candidates = sorted(RESULTS_DIR.glob("pso_results_*.json"))
+    if not candidates:
+        sys.exit("No pso_results_*.json files found in results/. Run pso.py first.")
+
+    json_path = candidates[-1]   # last in sorted order = most recent
+    print(f"  Loading latest run → {json_path}")
+
 # ── Load saved results ────────────────────────────────────────────────────
 try:
-    with open("pso_results.json") as f:
+    with open(json_path) as f:
         data = json.load(f)
-except FileNotFoundError:
-    sys.exit("pso_results.json not found. Run pso.py first.")
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    sys.exit(f"Failed to load {json_path}: {e}")
+
+# ── Extract the run timestamp to link the output image filename ───────────
+#    The JSON 'timestamp' field is an ISO string; derive YYYYMMDD_HHMMSS
+#    from the source filename itself so the pairing is always exact.
+ts_tag = json_path.stem.replace("pso_results_", "")   # e.g. "20240618_143022"
 
 history  = data["history"]
 best_pos = data["best_position"]
@@ -47,6 +77,7 @@ ax.annotate(f"Best: {best_cost:.4f}\n{best_pos}",
             fontsize=9, color='#2c3e50')
 
 plt.tight_layout()
-plt.savefig("pso_convergence.png", dpi=150)
-print("Saved → pso_convergence.png")
+plot_path = RESULTS_DIR / f"pso_convergence_{ts_tag}.png"
+plt.savefig(plot_path, dpi=150)
+print(f"  Plot saved → {plot_path}")
 plt.show()

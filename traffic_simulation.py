@@ -256,6 +256,7 @@ def evaluate(green_times, sim_duration=60, headless=False):
 
     # ── vehicle-generation thread (stops when state['running'] is False)
     def generate_vehicles():
+        random.seed(42)  # deterministic vehicle generation for fair evaluation
         while state['running']:
             vtype = random.randint(0, 3)
             lane  = random.randint(0, 2)
