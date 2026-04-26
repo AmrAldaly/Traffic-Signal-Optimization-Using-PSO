@@ -460,9 +460,9 @@ if __name__ == "__main__":
     SIM_DURATION  = 60      # seconds per trial
 
     baseline_cases = [
-        [10, 10, 10, 10],   # Case 1 – uniform equal timing
+        [50 ,50 ,50 ,50],   # Case 1 – uniform equal timing
         [20, 10, 15, 25],   # Case 2 – skewed timing
-        [5,  5,  5,  5],    # Case 3 – very short phases
+        [5,  5,  5,  5]  # Case 3 – very short phases
     ]
 
     print("=" * 50)

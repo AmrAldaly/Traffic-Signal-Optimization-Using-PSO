@@ -1,9 +1,10 @@
 """
-plot_convergence.py – Visualise PSO convergence from results/pso_results_*.json
-================================================================================
-Run after pso.py has finished:
-    python plot_convergence.py                          # loads the latest run
-    python plot_convergence.py results/pso_results_X.json  # loads a specific run
+plot_convergence.py – Visualise PSO or GA convergence from results/*.json
+=========================================================================
+Run after pso.py or ga.py has finished:
+    python plot_convergence.py                            # loads the latest run (PSO or GA)
+    python plot_convergence.py results/pso_results_X.json # loads a specific PSO run
+    python plot_convergence.py results/ga_results_X.json  # loads a specific GA run
 """
 
 import json
@@ -25,15 +26,18 @@ if len(sys.argv) > 1:
     if not json_path.exists():
         sys.exit(f"File not found: {json_path}")
 else:
-    # Auto-select the most recent file in results/ by filename
-    # (filenames embed the timestamp as YYYYMMDD_HHMMSS, so lexicographic
-    #  order == chronological order — no stat() call needed)
+    # Auto-select the most recent file in results/ by filename.
+    # Covers both pso_results_* and ga_results_* — filenames embed
+    # YYYYMMDD_HHMMSS so lexicographic order == chronological order.
     if not RESULTS_DIR.exists():
-        sys.exit("results/ directory not found. Run pso.py first.")
+        sys.exit("results/ directory not found. Run pso.py or ga.py first.")
 
-    candidates = sorted(RESULTS_DIR.glob("pso_results_*.json"))
+    candidates = sorted(
+        list(RESULTS_DIR.glob("pso_results_*.json")) +
+        list(RESULTS_DIR.glob("ga_results_*.json"))
+    )
     if not candidates:
-        sys.exit("No pso_results_*.json files found in results/. Run pso.py first.")
+        sys.exit("No results found in results/. Run pso.py or ga.py first.")
 
     json_path = candidates[-1]   # last in sorted order = most recent
     print(f"  Loading latest run → {json_path}")
@@ -45,10 +49,15 @@ try:
 except (FileNotFoundError, json.JSONDecodeError) as e:
     sys.exit(f"Failed to load {json_path}: {e}")
 
-# ── Extract the run timestamp to link the output image filename ───────────
-#    The JSON 'timestamp' field is an ISO string; derive YYYYMMDD_HHMMSS
-#    from the source filename itself so the pairing is always exact.
-ts_tag = json_path.stem.replace("pso_results_", "")   # e.g. "20240618_143022"
+# ── Derive algorithm label and timestamp from filename ───────────────────
+#    stem examples: "pso_results_20240618_143022"  "ga_results_20240618_150900"
+stem      = json_path.stem                                  # e.g. "ga_results_20240618_150900"
+algorithm = data.get("algorithm", "PSO" if "pso" in stem else "GA")
+ts_tag    = stem.split("_", maxsplit=2)[-1]                 # "20240618_150900"
+
+# Colour and x-axis label vary by algorithm
+ALGO_COLOR  = '#e74c3c' if algorithm == "PSO" else '#2980b9'
+XLABEL      = "Iteration" if algorithm == "PSO" else "Generation"
 
 history  = data["history"]
 best_pos = data["best_position"]
@@ -59,12 +68,13 @@ params   = data["params"]
 fig, ax = plt.subplots(figsize=(9, 5))
 
 ax.plot(range(1, len(history) + 1), history,
-        marker='o', linewidth=2, color='#e74c3c', label='Global Best Fitness')
+        marker='o', linewidth=2, color=ALGO_COLOR, label='Global Best Fitness')
 ax.fill_between(range(1, len(history) + 1), history,
-                alpha=0.15, color='#e74c3c')
+                alpha=0.15, color=ALGO_COLOR)
 
-ax.set_title("PSO Convergence – Traffic Signal Optimisation", fontsize=14, fontweight='bold')
-ax.set_xlabel("Iteration")
+ax.set_title(f"{algorithm} Convergence – Traffic Signal Optimisation",
+             fontsize=14, fontweight='bold')
+ax.set_xlabel(XLABEL)
 ax.set_ylabel("Fitness Score (Avg Wait + Queue)")
 ax.legend()
 ax.grid(True, linestyle='--', alpha=0.5)
@@ -77,7 +87,7 @@ ax.annotate(f"Best: {best_cost:.4f}\n{best_pos}",
             fontsize=9, color='#2c3e50')
 
 plt.tight_layout()
-plot_path = RESULTS_DIR / f"pso_convergence_{ts_tag}.png"
+plot_path = RESULTS_DIR / f"{algorithm.lower()}_convergence_{ts_tag}.png"
 plt.savefig(plot_path, dpi=150)
 print(f"  Plot saved → {plot_path}")
 plt.show()
