@@ -80,7 +80,7 @@ Each fitness evaluation runs the Pygame simulation in headless mode (`headless=T
 ```
 traffic-signal-optimizer/
 │
-├── simulation.py              # Core simulation engine (Pygame)
+├── traffic_simulation.py              # Core simulation engine (Pygame)
 │   └── evaluate(green_times, sim_duration, headless)
 │
 ├── pso.py                     # Particle Swarm Optimization
@@ -106,7 +106,7 @@ traffic-signal-optimizer/
 
 | Layer | Responsibility |
 |---|---|
-| `simulation.py` | Physics, vehicle logic, signal timing, fitness computation |
+| `traffic_simulation.py` | Physics, vehicle logic, signal timing, fitness computation |
 | `pso.py` / `ga.py` | Search strategy — calls `evaluate()` as a black-box oracle |
 | `plot_convergence.py` | Visualization — reads from `results/` independently |
 
@@ -120,8 +120,8 @@ This means you can swap the optimizer without touching the simulation, or upgrad
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/traffic-signal-optimizer.git
-cd traffic-signal-optimizer
+git clone https://github.com/AmrAldaly/Traffic-Signal-Optimization
+cd Traffic-Signal-Optimization
 
 # 2. Install dependencies
 pip install pygame matplotlib
@@ -141,7 +141,7 @@ No additional build steps are required. The `results/` directory is created auto
 Evaluate three manual timing configurations to establish a baseline before running any optimizer:
 
 ```bash
-python simulation.py
+python traffic_simulation.py
 ```
 
 This runs 60-second simulations for `[10,10,10,10]`, `[20,10,15,25]`, and `[5,5,5,5]`, and prints the fitness score for each.
@@ -200,8 +200,8 @@ This auto-loads the **most recent** JSON file from `results/` and opens a full P
 python plot_convergence.py
 
 # Or specify a particular run explicitly
-python plot_convergence.py results/pso_results_20240618_143022.json
-python plot_convergence.py results/ga_results_20240618_150900.json
+python plot_convergence.py results/pso_results_20260419_060904.json
+python plot_convergence.py results/ga_results_20260426_042532.json
 ```
 
 The plot is saved as `results/{algorithm}_convergence_YYYYMMDD_HHMMSS.png`, linked by timestamp to its source JSON.
@@ -246,10 +246,10 @@ Both algorithms agree on a structural insight: **long green phases for the Down 
 | **Selection** | Personal best + global best attraction | Tournament (k=3) |
 | **Exploration mechanism** | Velocity with inertia weight (w=0.5) | Mutation (Pm=0.1) |
 | **Exploitation mechanism** | Cognitive + social pull (c1=c2=1.5) | Single-point crossover (Pc=0.8) + Elitism |
-| **Population size** | 15 particles | 20 chromosomes |
+| **Population size** | 15 particles | 15 chromosomes |
 | **Generations / Iterations** | 25 | 25 |
 | **Best fitness** | **29.78** | 30.85 |
-| **Total `evaluate()` calls** | 15 × 25 + 15 = **390** | 20 × 25 = **500** |
+| **Total `evaluate()` calls** | 15 × 25 + 15 = **390** | 15 × 25 = **375** |
 | **Convergence speed** | Fast — typically stabilizes by iteration 10 | Moderate — benefits from later-generation refinement |
 | **Risk of local minima** | Medium — swarm can collapse prematurely | Lower — crossover maintains diversity |
 
